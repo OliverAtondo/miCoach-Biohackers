@@ -1,0 +1,240 @@
+.register-card {
+  max-width: 520px;
+}
+
+/* Step indicator */
+.steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 2rem;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  position: relative;
+  flex: 1;
+}
+
+.step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: 55%;
+  width: 90%;
+  height: 2px;
+  background: #e2e8f0;
+}
+
+.step.done:not(:last-child)::after,
+.step.active:not(:last-child)::after {
+  background: #2563eb;
+}
+
+.step-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #94a3b8;
+  background: #ffffff;
+  position: relative;
+  z-index: 1;
+}
+
+.step.active .step-dot {
+  border-color: #2563eb;
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.step.done .step-dot {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: white;
+}
+
+.step span:last-child {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.step.active span:last-child {
+  color: #2563eb;
+}
+
+.step.done span:last-child {
+  color: #64748b;
+}
+
+/* Career grid */
+.career-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.career-chip {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.career-chip:hover {
+  border-color: #2563eb;
+  color: #333333;
+}
+
+.career-chip.selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+/* File drop */
+.file-drop {
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  color: #94a3b8;
+  font-size: 0.88rem;
+  min-height: 100px;
+}
+
+.file-drop:hover {
+  border-color: #2563eb;
+  color: #64748b;
+}
+
+.file-drop.has-file {
+  border-color: #2563eb;
+  border-style: solid;
+  background: #eff6ff;
+}
+
+.upload-icon {
+  font-size: 1.5rem;
+}
+
+.upload-hint {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #2563eb;
+}
+
+.file-icon {
+  font-size: 1.5rem;
+}
+
+.remove-file {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.2rem;
+  line-height: 1;
+}
+
+.remove-file:hover {
+  color: #dc2626;
+}
+
+/* GitHub links */
+.link-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.link-row input {
+  flex: 1;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 0.65rem 0.9rem;
+  color: #333333;
+  font-size: 0.88rem;
+  font-family: inherit;
+}
+
+.link-row input:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+.remove-link {
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0 0.6rem;
+  font-size: 0.8rem;
+}
+
+.remove-link:hover {
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.btn-add-link {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+.btn-add-link:hover {
+  text-decoration: underline;
+}
+
+.step-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.step-buttons .btn-secondary {
+  flex: 0 0 auto;
+  padding: 0.85rem 1.2rem;
+}
+
+.step-buttons .btn-primary {
+  flex: 1;
+}
