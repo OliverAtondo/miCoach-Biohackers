@@ -27,6 +27,7 @@ class UserOut(BaseModel):
     name: str
     career_path: str
     github_links: Optional[str]
+    onboarding_answers: Optional[str]
     analysis: Optional[str]
     roadmap: Optional[str]
     onboarding_complete: bool

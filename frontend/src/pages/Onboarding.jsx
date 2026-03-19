@@ -1,116 +1,128 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import api from "../api/client";
 import { useAuth } from "../contexts/AuthContext";
-import OnboardingQuestions from "../components/OnboardingQuestions";
 import "./Onboarding.css";
 
 export default function Onboarding() {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
-  const [phase, setPhase] = useState("form"); // form | analyzing | suggestions | done | error
+  
+  const [phase, setPhase] = useState("analyzing"); // analyzing | suggestions | finalizing | done | error
   const [error, setError] = useState("");
-  const [answers, setAnswers] = useState({});
   const [suggestions, setSuggestions] = useState([]);
-  const [selectedRoles, setSelectedRoles] = useState([]);
+  const [showAllRoles, setShowAllRoles] = useState(false);
+  const [finalCareer, setFinalCareer] = useState("");
 
   useEffect(() => {
     if (user?.onboarding_complete) {
       navigate("/dashboard");
+      return;
     }
-  }, []);
 
-  const runOnboarding = async (payload) => {
+    if (user?.onboarding_answers) {
+      try {
+        const answers = JSON.parse(user.onboarding_answers);
+        getSuggestions(answers);
+      } catch (e) {
+        setError("Could not parse your onboarding answers.");
+        setPhase("error");
+      }
+    } else if (user) {
+        // If we have a user but no answers, something went wrong in registration
+        setError("Onboarding questionnaire was not completed during registration.");
+        setPhase("error");
+    }
+  }, [user, navigate]);
+
+  const getSuggestions = async (answers) => {
+    setPhase("analyzing");
     try {
-      setPhase("analyzing");
-      const res = await api.post("/api/mentor/onboard", payload || {});
-      // expect backend to return role suggestions: { roles: [...] }
-      const roles = res.data?.roles || [];
-      setSuggestions(roles);
+      const res = await api.post("/api/mentor/suggest-roles", answers);
+      setSuggestions(res.data?.roles || []);
       setPhase("suggestions");
     } catch (err) {
-      setError(err.response?.data?.detail || "Something went wrong. Please try again.");
+      setError(err.response?.data?.detail || "Could not get career recommendations.");
       setPhase("error");
     }
   };
 
-  const finalizeOnboarding = async (chosenRoles) => {
+  const finalizeOnboarding = async () => {
+    if (!finalCareer) return;
+    setPhase("finalizing");
     try {
-      setPhase("analyzing");
-      await api.post("/api/mentor/onboard", { answers, chosen_roles: chosenRoles });
+      await api.post("/api/mentor/onboard", { chosen_role: finalCareer });
+      await refreshUser(); // This will set onboarding_complete to true
       setPhase("done");
-      await refreshUser();
-      setTimeout(() => navigate("/dashboard"), 1200);
+      setTimeout(() => navigate("/dashboard"), 1500);
     } catch (err) {
       setError(err.response?.data?.detail || "Something went wrong. Please try again.");
       setPhase("error");
     }
   };
 
-  const toggleAnswer = (key, value, multiple = false) => {
-    setAnswers((prev) => {
-      const cur = prev[key] || [];
-      if (multiple) {
-        const exists = cur.includes(value);
-        return { ...prev, [key]: exists ? cur.filter((v) => v !== value) : [...cur, value] };
-      }
-      return { ...prev, [key]: [value] };
-    });
-  };
+  const renderSuggestions = () => {
+    const initialRole = user?.career_path;
+    let displaySuggestions = showAllRoles ? suggestions : suggestions.slice(0, 5);
+    // Ensure initial role isn't duplicated if it also appears in AI suggestions
+    if (initialRole && displaySuggestions.includes(initialRole)) {
+        displaySuggestions = displaySuggestions.filter(r => r !== initialRole);
+    }
+
+    return (
+      <>
+        <h2>Final Career Selection</h2>
+        <p>Our AI has recommendations, but the choice is yours. Select your definitive career path.</p>
+        
+        <div className="suggestions">
+          {/* User's initial choice */}
+          {initialRole && initialRole !== "None of the above" && (
+             <div 
+                key={initialRole}
+                className={`role-card ${finalCareer === initialRole ? 'selected' : ''}`}
+                onClick={() => setFinalCareer(initialRole)}
+            >
+                <div className="role-title">{initialRole}</div>
+                <div className="role-sub">Your Current Selection</div>
+            </div>
+          )}
+
+          {/* AI Suggestions */}
+          {displaySuggestions.map((r, i) => (
+            <div key={r} className={`role-card ${finalCareer === r ? 'selected' : ''}`} onClick={() => setFinalCareer(r)}>
+              <div className="role-title">{r}</div>
+              <div className="role-sub">AI Recommendation #{i + 1}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+            {!showAllRoles && suggestions.length > 5 && (
+                <button className="btn-secondary" onClick={() => setShowAllRoles(true)}>Show All Suggestions</button>
+            )}
+            <button className="btn-primary" disabled={!finalCareer} onClick={finalizeOnboarding}>Confirm & Build My Roadmap</button>
+        </div>
+      </>
+    )
+  }
 
   return (
     <div className="onboarding-container">
       <div className="onboarding-card">
         <div className="onboarding-logo">MC</div>
 
-        {phase === "form" && (
-          <>
-            <h2>Queremos conocerte mejor</h2>
-            <p>Responde brevemente (selección múltiple cuando aplique). Esto nos ayuda a personalizar tu roadmap.</p>
-
-            <OnboardingQuestions
-              answers={answers}
-              toggleAnswer={toggleAnswer}
-              onNext={() => runOnboarding({ answers })}
-              loading={phase === "analyzing"}
-              nextLabel="Generar recomendaciones"
-              showHeader={false}
-            />
-          </>
-        )}
-
-        {phase === "analyzing" && (
+        {(phase === "analyzing" || phase === "finalizing") && (
           <>
             <div className="spinner" />
-            <h2>Procesando tus respuestas…</h2>
-            <p>Estamos combinando tu perfil con el análisis de CV y repositorios para generar roles recomendados.</p>
-            <div className="progress-steps">
-              <div className="progress-step active">Reading CV</div>
-              <div className="progress-step active">Fetching GitHub repos</div>
-              <div className="progress-step">Generating analysis</div>
-              <div className="progress-step">Building your roadmap</div>
-            </div>
+            <h2>{phase === 'finalizing' ? 'Building Your Roadmap...' : 'Analyzing Your Profile...'}</h2>
+            <p>{phase === 'finalizing' 
+                ? 'Your mentor is preparing your personalized learning path.' 
+                : 'We are processing your questionnaire to suggest the best career paths for you.'}
+            </p>
           </>
         )}
 
-        {phase === "suggestions" && (
-          <>
-            <h2>Sugerencias de rol</h2>
-            <p>El modelo seleccionó las mejores opciones para tu roadmap. Elige una o varias.</p>
-            <div className="suggestions">
-              {(suggestions.length ? suggestions : ['Software Engineer','Technical Lead','Product Engineer','Data Engineer','Full Stack Developer']).slice(0,10).map((r, i) => (
-                <div key={r} className={`role-card ${selectedRoles.includes(r) ? 'selected' : ''}`} onClick={() => setSelectedRoles((s) => s.includes(r) ? s.filter(x => x !== r) : [...s, r])}>
-                  <div className="role-title">{r}</div>
-                  <div className="role-sub">Recomendación #{i+1}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{marginTop:16}}>
-              <button className="btn-primary" disabled={selectedRoles.length===0} onClick={() => finalizeOnboarding(selectedRoles)}>Confirmar rol y generar roadmap</button>
-              <button className="btn-secondary" style={{marginLeft:8}} onClick={() => { setSelectedRoles(suggestions.length ? suggestions.slice(0,20) : []); finalizeOnboarding(suggestions); }}>Mostrar todas las carreras</button>
-            </div>
-          </>
-        )}
+        {phase === "suggestions" && renderSuggestions()}
 
         {phase === "done" && (
           <>
@@ -125,7 +137,6 @@ export default function Onboarding() {
             <div className="error-icon">!</div>
             <h2>Something went wrong</h2>
             <p>{error}</p>
-            <button className="btn-primary" onClick={runOnboarding}>Try Again</button>
           </>
         )}
       </div>

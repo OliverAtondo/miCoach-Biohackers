@@ -14,6 +14,7 @@ class User(Base):
     career_path = Column(String, nullable=False)
     cv_filename = Column(String, nullable=True)
     github_links = Column(Text, nullable=True)  # JSON array stored as string
+    onboarding_answers = Column(Text, nullable=True) # JSON object stored as string
     analysis = Column(Text, nullable=True)       # Gemini analysis result
     roadmap = Column(Text, nullable=True)        # Gemini roadmap result
     onboarding_complete = Column(Boolean, default=False)

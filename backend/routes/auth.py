@@ -21,6 +21,7 @@ async def register(
     name: str = Form(...),
     password: str = Form(...),
     career_path: str = Form(...),
+    onboarding_answers: str = Form(None),
     github_links: str = Form("[]"),  # JSON array string
     cv: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -44,6 +45,7 @@ async def register(
         name=name,
         hashed_password=hash_password(password),
         career_path=career_path,
+        onboarding_answers=onboarding_answers,
         cv_filename=safe_filename,
         github_links=github_links,
         onboarding_complete=False,

@@ -41,11 +41,6 @@ const QUESTION_SETS = [
 export default function OnboardingQuestions({
   answers,
   toggleAnswer,
-  onBack,
-  onNext,
-  loading,
-  backLabel = "\u2190 Back",
-  nextLabel = "Next →",
   showHeader = true,
 }) {
   return (
@@ -74,17 +69,6 @@ export default function OnboardingQuestions({
           </div>
         </div>
       ))}
-
-      <div className="step-buttons">
-        {onBack && (
-          <button type="button" className="btn-secondary" onClick={onBack}>
-            {backLabel}
-          </button>
-        )}
-        <button type="button" className="btn-primary" onClick={onNext} disabled={loading}>
-          {loading ? "Generando sugerencias..." : nextLabel}
-        </button>
-      </div>
     </div>
   );
 }
