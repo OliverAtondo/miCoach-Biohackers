@@ -8,7 +8,6 @@ from database import get_db
 import models
 import schemas
 from auth import hash_password, verify_password, create_access_token, get_current_user
-from services.pdf import extract_text_from_pdf
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 

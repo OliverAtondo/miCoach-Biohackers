@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { useAuth } from "../contexts/AuthContext";
+import Practice from "./Practice";
 import api from "../api/client";
 import "./Dashboard.css";
 
@@ -11,6 +12,7 @@ const NAV_ITEMS = [
   { id: "Chat",      icon: "💬", label: "Chat" },
   { id: "Roadmap",   icon: "🗺",  label: "Roadmap" },
   { id: "Analysis",  icon: "📊", label: "Analysis" },
+  { id: "Practice",  icon: "⚡", label: "Practice" },
 ];
 
 export default function Dashboard() {
@@ -646,6 +648,9 @@ What would you like to explore first?`,
               </div>
             </div>
           )}
+
+          {view === "Practice" && <Practice />}
+          
         </main>
       </div>
     </div>
