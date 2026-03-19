@@ -32,6 +32,11 @@ export default function Dashboard() {
   const [githubInputs, setGithubInputs] = useState({});
   const [submitting, setSubmitting] = useState({});
   const [evalResults, setEvalResults] = useState({});
+  
+  // Hot Topics state
+  const [hotTopics, setHotTopics] = useState([]);
+  const [topicsLoading, setTopicsLoading] = useState(true);
+  const [topicsError, setTopicsError] = useState("");
 
   useEffect(() => {
     if (!user?.onboarding_complete) {
@@ -39,11 +44,24 @@ export default function Dashboard() {
       return;
     }
     loadHistory();
-  }, []);
+    loadHotTopics();
+  }, [user]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+  
+  const loadHotTopics = async () => {
+    setTopicsLoading(true);
+    try {
+      const res = await api.get("/api/hot-topics/relevant");
+      setHotTopics(res.data.results || []);
+    } catch (err) {
+      setTopicsError("Could not load topics.");
+    } finally {
+      setTopicsLoading(false);
+    }
+  };
 
   const loadHistory = async () => {
     try {
@@ -52,7 +70,11 @@ export default function Dashboard() {
         setMessages([{
           id: 0,
           role: "model",
-          content: `Hi ${user?.name}! 👋 I'm your personal tech mentor. I've analyzed your profile and built a custom roadmap for you.\n\nYou can ask me anything — about your learning path, specific technologies, how to approach projects, or career advice. I'm here to help you become a **${user?.career_path}**!\n\nWhat would you like to explore first?`,
+          content: `Hi ${user?.name}! 👋 I'm your personal tech mentor. I've analyzed your profile and built a custom roadmap for you.
+
+You can ask me anything — about your learning path, specific technologies, how to approach projects, or career advice. I'm here to help you become a **${user?.career_path}**!
+
+What would you like to explore first?`,
           created_at: new Date().toISOString(),
         }]);
       } else {
@@ -257,6 +279,24 @@ export default function Dashboard() {
                     <div className="banner-deco" />
                   </div>
 
+                  <div className="card">
+                    <h4 className="card-title">Temas del Momento</h4>
+                    {topicsLoading ? (
+                      <div className="loading-spinner"></div>
+                    ) : topicsError ? (
+                      <div className="topics-error">{topicsError}</div>
+                    ) : (
+                      <div className="topics-list">
+                        {hotTopics.slice(0, 5).map((topic, i) => (
+                          <a href={topic.url} target="_blank" rel="noopener noreferrer" key={i} className="topic-item">
+                            <div className="topic-title">{topic.title}</div>
+                            <div className="topic-source">{topic.source}</div>
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="card achievements-card">
                     <h4 className="card-title">My achievements</h4>
                     <div className="achievements-list">
@@ -295,6 +335,11 @@ export default function Dashboard() {
                       </div>
                     </div>
                   </div>
+
+                </div>
+
+                {/* Right col */}
+                <div className="home-right">
 
                   <div className="card quick-actions-card">
                     <div className="action-row" onClick={() => setView("Practice")}>
@@ -336,10 +381,6 @@ export default function Dashboard() {
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
                     </div>
                   </div>
-                </div>
-
-                {/* Right col */}
-                <div className="home-right">
                   <div className="card skills-card">
                     <h4 className="card-title">Skills proficiency</h4>
                     <p className="card-desc">Access the detailed report and identify improvement opportunities for your career progress.</p>
