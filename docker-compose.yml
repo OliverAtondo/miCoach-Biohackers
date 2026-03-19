@@ -11,16 +11,16 @@ services:
     command: 
       - |
         ollama serve &
-        until curl -sf http://localhost:11434/api/tags > /dev/null 2>&1; do
+        until ollama list > /dev/null 2>&1; do
           sleep 1
         done
         ollama pull qwen2.5:7b
         wait
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:11434/api/tags"]
-      interval: 15s
-      timeout: 10s
+      test: ["CMD", "ollama", "list"]
+      interval: 150s
+      timeout: 100s
       retries: 10
-      start_period: 30s
+      start_period: 300s
 volumes:
   ollama_data:

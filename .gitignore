@@ -1,0 +1,36 @@
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/.venv/
+*.egg-info/
+
+# Environment
+backend/.env
+**/.env.local
+**/.env.*.local
+
+# Database
+backend/*.db
+backend/*.sqlite
+
+# Uploads
+**/uploads/
+
+# Node
+**/node_modules/
+**/dist/
+**/build/
+
+# Vite
+frontend/.vite/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo

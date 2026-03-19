@@ -79,7 +79,7 @@ export default function Register() {
       const res = await api.post("/api/auth/register", data);
       localStorage.setItem("token", res.data.access_token);
       await refreshUser();
-      navigate("/onboarding");
+      await api.post("/api/mentor/onboard");
     } catch (err) {
       setError(err.response?.data?.detail || "Registration failed");
     } finally {
