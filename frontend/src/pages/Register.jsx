@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../api/client";
 import { useAuth } from "../contexts/AuthContext";
+import OnboardingQuestions from "../components/OnboardingQuestions";
 import "./Auth.css";
 import "./Register.css";
+import "./Onboarding.css";
 
 const CAREER_PATHS = [
   "Frontend Developer",
@@ -18,7 +20,7 @@ const CAREER_PATHS = [
   "QA / Test Engineer",
 ];
 
-const STEPS = ["Account", "Career", "Documents"];
+const STEPS = ["Account", "Questions", "Career", "Documents"];
 
 export default function Register() {
   const navigate = useNavigate();
@@ -37,6 +39,10 @@ export default function Register() {
     cv: null,
   });
 
+  const [answers, setAnswers] = useState({});
+  const [suggestions, setSuggestions] = useState([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+
   const updateField = (field, value) => setForm((f) => ({ ...f, [field]: value }));
 
   const updateGithubLink = (i, value) => {
@@ -49,16 +55,51 @@ export default function Register() {
   const removeLink = (i) =>
     updateField("github_links", form.github_links.filter((_, idx) => idx !== i));
 
-  const nextStep = (e) => {
-    e.preventDefault();
+  const toggleAnswer = (key, value, multiple = false) => {
+    setAnswers((prev) => {
+      const cur = prev[key] || [];
+      if (multiple) {
+        const exists = cur.includes(value);
+        return { ...prev, [key]: exists ? cur.filter((v) => v !== value) : [...cur, value] };
+      }
+      return { ...prev, [key]: [value] };
+    });
+  };
+
+  const nextStep = async () => {
     setError("");
+
+    // Step 0: account info
     if (step === 0) {
       if (!form.name || !form.email || !form.password || !form.confirmPassword) return setError("Please fill all fields");
       if (form.password.length < 6) return setError("Password must be at least 6 characters");
       if (form.password !== form.confirmPassword) return setError("Passwords do not match");
+      setStep(1);
+      return;
     }
-    if (step === 1 && !form.career_path) return setError("Please select a career path");
-    setStep((s) => s + 1);
+
+    // Step 1: questionnaire -> generate career suggestions
+    if (step === 1) {
+      if (!(answers.responsibilities?.length) || !(answers.learning?.length)) return setError("Please answer the questions to continue");
+      setStep(2);
+      setLoadingSuggestions(true);
+      try {
+        const res = await api.post("/api/mentor/suggest-roles", { answers });
+        setSuggestions(res.data.roles || []);
+      } catch (err) {
+        setError("Failed to get suggestions. Please try again.");
+      } finally {
+        setLoadingSuggestions(false);
+      }
+      return;
+    }
+
+    // Step 2: career selection
+    if (step === 2) {
+      if (!form.career_path) return setError("Please select a career path");
+      setStep(3);
+      return;
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -73,13 +114,14 @@ export default function Register() {
     data.append("password", form.password);
     data.append("career_path", form.career_path);
     data.append("github_links", JSON.stringify(form.github_links.filter((l) => l.trim())));
+    data.append("onboarding_answers", JSON.stringify(answers));
     data.append("cv", form.cv);
 
     try {
       const res = await api.post("/api/auth/register", data);
       localStorage.setItem("token", res.data.access_token);
       await refreshUser();
-      await api.post("/api/mentor/onboard");
+      navigate("/onboarding");
     } catch (err) {
       setError(err.response?.data?.detail || "Registration failed");
     } finally {
@@ -110,7 +152,7 @@ export default function Register() {
 
         {/* Step 0: Account */}
         {step === 0 && (
-          <form onSubmit={nextStep} className="auth-form">
+          <div className="auth-form">
             <div className="field">
               <label>Full Name</label>
               <input
@@ -150,38 +192,55 @@ export default function Register() {
                 required
               />
             </div>
-            <button type="submit" className="btn-primary">Next &rarr;</button>
-          </form>
+            <button onClick={nextStep} className="btn-primary">Next &rarr;</button>
+          </div>
         )}
 
-        {/* Step 1: Career */}
+        {/* Step 1: Questions */}
         {step === 1 && (
-          <form onSubmit={nextStep} className="auth-form">
+          <OnboardingQuestions
+            answers={answers}
+            toggleAnswer={toggleAnswer}
+            onBack={() => setStep(0)}
+            onNext={nextStep}
+            loading={loadingSuggestions}
+          />
+        )}
+
+        {/* Step 2: Career */}
+        {step === 2 && (
+          <div className="auth-form">
             <div className="field">
-              <label>Career Path</label>
-              <p className="field-hint">What role do you want to grow into?</p>
-              <div className="career-grid">
-                {CAREER_PATHS.map((path) => (
-                  <button
-                    key={path}
-                    type="button"
-                    className={`career-chip ${form.career_path === path ? "selected" : ""}`}
-                    onClick={() => updateField("career_path", path)}
-                  >
-                    {path}
-                  </button>
-                ))}
-              </div>
+              <label>Selecciona tu carrera</label>
+              <p className="field-hint">Basado en tus respuestas, estas son las opciones recomendadas.</p>
+
+              {loadingSuggestions ? (
+                <div className="loading-card">
+                  <div className="spinner" />
+                  <p>Pensando en las mejores opciones...</p>
+                </div>
+              ) : (
+                <div className="career-grid">
+                  {(suggestions.length ? suggestions : CAREER_PATHS).map((path) => (
+                    <button
+                      key={path}
+                      type="button"
+                      className={`career-chip ${form.career_path === path ? "selected" : ""}`}
+                      onClick={() => updateField("career_path", path)}
+                    >
+                      {path}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="step-buttons">
-              <button type="button" className="btn-secondary" onClick={() => setStep(0)}>&larr; Back</button>
-              <button type="submit" className="btn-primary">Next &rarr;</button>
+              <button type="button" className="btn-secondary" onClick={() => setStep(1)}>&larr; Back</button>
+              <button onClick={nextStep} className="btn-primary">Next &rarr;</button>
             </div>
-          </form>
+          </div>
         )}
-
-        {/* Step 2: Documents */}
-        {step === 2 && (
+        {step === 3 && (
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="field">
               <label>Upload CV (PDF)</label>

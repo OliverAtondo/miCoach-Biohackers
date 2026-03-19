@@ -7,7 +7,7 @@ import os
 
 from database import engine
 import models
-from routes import auth, mentor
+from routes import auth, mentor, roadmap
 
 # Create DB tables
 models.Base.metadata.create_all(bind=engine)
@@ -48,7 +48,7 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 app.include_router(auth.router)
 app.include_router(mentor.router)
-
+app.include_router(roadmap.router)
 
 @app.get("/")
 def root():

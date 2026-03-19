@@ -8,7 +8,7 @@ from database import get_db
 import models
 import schemas
 from auth import get_current_user
-from services.ai import analyze_user_profile
+from services.ai import analyze_user_profile, generate_roadmap, chat_with_mentor, suggest_careers
 from services.github import fetch_all_repos
 from services.pdf import extract_text_from_pdf
 
@@ -58,13 +58,83 @@ async def onboard(
         github_summaries=github_summaries,
     )
 
+    # Step 2: Generate roadmap
+    roadmap = generate_roadmap(
+        name=current_user.name,
+        career_path=current_user.career_path,
+        analysis=analysis,
+    )
 
     # Save to DB
     current_user.analysis = analysis
+    current_user.roadmap = roadmap
     current_user.onboarding_complete = True
     db.commit()
     db.refresh(current_user)
 
-    return {"analysis": analysis}
+    return {"analysis": analysis, "roadmap": roadmap}
 
 
+@router.post("/suggest-roles")
+async def suggest_roles(answers: dict):
+    """Suggest career roles based on answers."""
+    roles = suggest_careers(answers)
+    return {"roles": roles}
+
+
+@router.post("/chat", response_model=schemas.ChatMessageOut)
+async def chat(
+    message: schemas.ChatMessageIn,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not current_user.onboarding_complete:
+        raise HTTPException(status_code=400, detail="Complete onboarding first")
+
+    # Save user message
+    user_msg = models.ChatMessage(user_id=current_user.id, role="user", content=message.content)
+    db.add(user_msg)
+    db.commit()
+    db.refresh(user_msg)
+
+    # Build history for context (last 20 messages)
+    history_records = (
+        db.query(models.ChatMessage)
+        .filter(models.ChatMessage.user_id == current_user.id, models.ChatMessage.id != user_msg.id)
+        .order_by(models.ChatMessage.created_at.asc())
+        .limit(20)
+        .all()
+    )
+    history = [{"role": m.role, "content": m.content} for m in history_records]
+
+    # Get Gemini response
+    reply = chat_with_mentor(
+        name=current_user.name,
+        career_path=current_user.career_path,
+        analysis=current_user.analysis or "",
+        roadmap=current_user.roadmap or "",
+        history=history,
+        user_message=message.content,
+    )
+
+    # Save model reply
+    model_msg = models.ChatMessage(user_id=current_user.id, role="model", content=reply)
+    db.add(model_msg)
+    db.commit()
+    db.refresh(model_msg)
+
+    return model_msg
+
+
+@router.get("/chat/history", response_model=list[schemas.ChatMessageOut])
+def chat_history(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    messages = (
+        db.query(models.ChatMessage)
+        .filter(models.ChatMessage.user_id == current_user.id)
+        .order_by(models.ChatMessage.created_at.asc())
+        .all()
+    )
+    return messages
