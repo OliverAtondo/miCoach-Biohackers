@@ -194,44 +194,57 @@ def generate_exercise(
     avoid = ", ".join(previous_titles[-10:]) if previous_titles else "none"
 
     messages = [
-        {
-            "role": "system",
-            "content": "You are an expert coding interview coach. Generate practical coding exercises. Always respond with valid JSON only, no markdown.",
-        },
-        {
-            "role": "user",
-            "content": f"""Generate a {difficulty} coding exercise for:
-- Student: {name}
-- Career goal: {career_path}
-- Their level: {analysis[:600]}
-- Language: {language}
-- Avoid repeating: {avoid}
+                {
+                        "role": "system",
+                        "content": "You are an expert coding interview coach. Generate practical coding exercises. Always respond with valid JSON only, no markdown.",
+                },
+                {
+                        "role": "user",
+                        "content": f"""Generate a {difficulty} coding exercise for:
+Student: {name}
+Career goal: {career_path}
+Their level: {analysis[:600]}
+Language: {language}
+Avoid repeating: {avoid}
+
+STRICT TESTING RULES for test_runner_code:
+1. All tests must be independent, reproducible, and cover normal, edge, and error cases.
+2. Include at least 3 test cases, with clear assertion messages for failures.
+3. Do not depend on global state, files, or user input; tests must be self-contained.
+4. Validate both correct and incorrect/edge inputs.
+5. Use assert statements (Python) or strict equality checks (JS) with descriptive error messages.
+6. Print a clear summary of passed/failed tests.
+7. The user must only implement the solution function; never modify the tests.
+8. The test runner must always call the student's function and check outputs automatically.
+9. All tests must be correct and reflect the problem requirements exactly.
+10. Never skip or comment out failing tests; always show all results.
 
 Respond with ONLY this JSON structure (no markdown, no explanation):
 {{
-  "title": "Exercise title",
-  "difficulty": "{difficulty}",
-  "topic": "e.g. Arrays, Strings, OOP, Async, etc.",
-  "description": "Full problem description with context",
-  "examples": [
-    {{"input": "example input", "output": "expected output", "explanation": "why"}}
-  ],
-  "constraints": ["list of constraints like time/space complexity"],
-  "starter_code": "the starter code with function signature and docstring",
-  "test_runner_code": "complete runnable code that defines the function stub, then runs at least 3 test cases using print/assert, so the student can see pass/fail output"
+    "title": "Exercise title",
+    "difficulty": "{difficulty}",
+    "topic": "e.g. Arrays, Strings, OOP, Async, etc.",
+    "description": "Full problem description with context",
+    "examples": [
+        {{"input": "example input", "output": "expected output", "explanation": "why"}}
+    ],
+    "constraints": ["list of constraints like time/space complexity"],
+    "starter_code": "the starter code with function signature and docstring",
+    "test_runner_code": "complete runnable code that defines the function stub, then runs at least 3 test cases using print/assert, so the student can see pass/fail output, following all STRICT TESTING RULES above."
 }}
 
-For test_runner_code: write it so the student's solution function is CALLED and results printed clearly.
+For test_runner_code: write it so the student's solution function is CALLED and results printed clearly. Follow all STRICT TESTING RULES above.
 Example test_runner_code for python:
 def solution(nums):
-    pass  # student replaces this
+        pass  # student replaces this
 
-print(solution([1,2,3]))  # expected: 6
-assert solution([1,2,3]) == 6, "Test 1 failed"
-print("Test 1 passed")
+assert solution([1,2,3]) == 6, "Test 1 failed: sum of [1,2,3] should be 6"
+assert solution([]) == 0, "Test 2 failed: sum of [] should be 0"
+assert solution([-1,1]) == 0, "Test 3 failed: sum of [-1,1] should be 0"
+print("All tests passed!")
 """,
-        },
-    ]
+                },
+        ]
     raw = _chat_completion(messages, json_mode=True)
     raw = raw.strip()
     if raw.startswith("```"):
