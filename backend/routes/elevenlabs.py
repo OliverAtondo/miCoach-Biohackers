@@ -29,8 +29,8 @@ def text_to_speech(payload: TTSRequest):
         # Generate audio stream from text
         audio_stream = client.generate(
             text=payload.text,
-            voice="21m00Tcm4TlvDq8ikWAM",
-            stream=True
+            voice="CwhRBWXzGAHq8TQ4Fs17",
+            model="eleven_flash_v2_5"
         )
         
         # Return the stream as a response
