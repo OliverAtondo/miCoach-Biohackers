@@ -56,7 +56,7 @@ async def fetch_repo_summary(github_url: str) -> Dict:
             repo_data = {}
 
         if not repo_data:
-            return {}
+            return {"name": f"{owner}/{repo}", "error": "Failed to fetch repository data (404)"}
 
         default_branch = repo_data.get("default_branch", "main")
 
