@@ -10,7 +10,7 @@ from services.hot_topic import get_hot_topics
 
 from database import engine
 import models
-from routes import auth, mentor, roadmap, exercises
+from routes import auth, mentor, roadmap, exercises, interview
 from auth import get_current_user
 
 # Create DB tables
@@ -85,6 +85,7 @@ app.include_router(auth.router)
 app.include_router(mentor.router)
 app.include_router(roadmap.router)
 app.include_router(exercises.router)
+app.include_router(interview.router)
 
 @app.get("/api/hot-topics/search")
 def search_hot_topics(query: str, n_results: int = 5):

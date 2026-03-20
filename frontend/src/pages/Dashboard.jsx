@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { useAuth } from "../contexts/AuthContext";
 import Practice from "./Practice";
+import Interview from "./Interview";
 import api from "../api/client";
 import "./Dashboard.css";
 
@@ -13,6 +14,7 @@ const NAV_ITEMS = [
   { id: "Roadmap",   icon: "🗺",  label: "Roadmap" },
   { id: "Analysis",  icon: "📊", label: "Analysis" },
   { id: "Practice",  icon: "⚡", label: "Practice" },
+  { id: "Interview", icon: "🎙", label: "Interview" }
 ];
 
 export default function Dashboard() {
@@ -650,7 +652,7 @@ What would you like to explore first?`,
           )}
 
           {view === "Practice" && <Practice />}
-          
+          {view === "Interview" && <Interview />}
         </main>
       </div>
     </div>
