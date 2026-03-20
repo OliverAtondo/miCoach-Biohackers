@@ -55,6 +55,9 @@ async def fetch_repo_summary(github_url: str) -> Dict:
         except Exception:
             repo_data = {}
 
+        if not repo_data:
+            return {}
+
         default_branch = repo_data.get("default_branch", "main")
 
         # 2. Languages breakdown

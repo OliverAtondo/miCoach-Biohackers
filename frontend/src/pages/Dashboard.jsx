@@ -4,17 +4,17 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { useAuth } from "../contexts/AuthContext";
+import api from "../api/client";
 import Practice from "./Practice";
 import Interview from "./Interview";
-import api from "../api/client";
 import "./Dashboard.css";
 
 const NAV_ITEMS = [
   { id: "Chat",      icon: "💬", label: "Chat" },
+  { id: "Practice",  icon: "⚡", label: "Practice" },
+  { id: "Interview", icon: "🎤", label: "Interview" },
   { id: "Roadmap",   icon: "🗺",  label: "Roadmap" },
   { id: "Analysis",  icon: "📊", label: "Analysis" },
-  { id: "Practice",  icon: "⚡", label: "Practice" },
-  { id: "Interview", icon: "🎙", label: "Interview" }
 ];
 
 export default function Dashboard() {
@@ -36,13 +36,6 @@ export default function Dashboard() {
   const [githubInputs, setGithubInputs] = useState({});
   const [submitting, setSubmitting] = useState({});
   const [evalResults, setEvalResults] = useState({});
-  
-
-  // Hot Topics state
-  const [hotTopics, setHotTopics] = useState([]);
-  const [topicsLoading, setTopicsLoading] = useState(true);
-  const [topicsError, setTopicsError] = useState("");
-  const [showAllTopics, setShowAllTopics] = useState(false);
 
   useEffect(() => {
     if (!user?.onboarding_complete) {
@@ -50,29 +43,11 @@ export default function Dashboard() {
       return;
     }
     loadHistory();
-    loadHotTopics();
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-  
-
-  const loadHotTopics = async () => {
-    setTopicsLoading(true);
-    setTopicsError("");
-    try {
-      // Enviar el rol del usuario para filtrar noticias relevantes
-      const res = await api.get("/api/hot-topics/relevant", {
-        params: { role: user?.career_path || "" }
-      });
-      setHotTopics(res.data.results || res.data || []);
-    } catch (err) {
-      setTopicsError("Could not load topics.");
-    } finally {
-      setTopicsLoading(false);
-    }
-  };
 
   const loadHistory = async () => {
     try {
@@ -81,11 +56,7 @@ export default function Dashboard() {
         setMessages([{
           id: 0,
           role: "model",
-          content: `Hi ${user?.name}! 👋 I'm your personal tech mentor. I've analyzed your profile and built a custom roadmap for you.
-
-You can ask me anything — about your learning path, specific technologies, how to approach projects, or career advice. I'm here to help you become a **${user?.career_path}**!
-
-What would you like to explore first?`,
+          content: `Hi ${user?.name}! 👋 I'm your personal tech mentor. I've analyzed your profile and built a custom roadmap for you.\n\nYou can ask me anything — about your learning path, specific technologies, how to approach projects, or career advice. I'm here to help you become a **${user?.career_path}**!\n\nWhat would you like to explore first?`,
           created_at: new Date().toISOString(),
         }]);
       } else {
@@ -290,41 +261,6 @@ What would you like to explore first?`,
                     <div className="banner-deco" />
                   </div>
 
-                  <div className="card hot-topics-card">
-                    <h4 className="card-title">Temas del Momento</h4>
-                    {topicsLoading ? (
-                      <div className="loading-spinner"></div>
-                    ) : topicsError ? (
-                      <div className="topics-error">{topicsError}</div>
-                    ) : (
-                      <>
-                        <div className="hot-topics-list">
-                          {(showAllTopics ? hotTopics : hotTopics.slice(0, 7)).map((topic, i) => (
-                            <a href={topic.url} target="_blank" rel="noopener noreferrer" key={i} className="hot-topic-item">
-                              <div className="hot-topic-header">
-                                <span className="hot-topic-title">{topic.title}</span>
-                                <span className="hot-topic-source">{topic.source}</span>
-                              </div>
-                              {topic.summary && (
-                                <div className="hot-topic-summary">{topic.summary}</div>
-                              )}
-                            </a>
-                          ))}
-                        </div>
-                        <div className="hot-topics-actions">
-                          {hotTopics.length > 7 && (
-                            <button className="btn btn-outline btn-sm" onClick={() => setShowAllTopics((v) => !v)}>
-                              {showAllTopics ? "Ver menos" : "Ver más"}
-                            </button>
-                          )}
-                          <button className="btn btn-primary btn-sm" style={{marginLeft:8}} onClick={loadHotTopics} disabled={topicsLoading}>
-                            Refrescar
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
                   <div className="card achievements-card">
                     <h4 className="card-title">My achievements</h4>
                     <div className="achievements-list">
@@ -363,11 +299,6 @@ What would you like to explore first?`,
                       </div>
                     </div>
                   </div>
-
-                </div>
-
-                {/* Right col */}
-                <div className="home-right">
 
                   <div className="card quick-actions-card">
                     <div className="action-row" onClick={() => setView("Practice")}>
@@ -409,6 +340,10 @@ What would you like to explore first?`,
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
                     </div>
                   </div>
+                </div>
+
+                {/* Right col */}
+                <div className="home-right">
                   <div className="card skills-card">
                     <h4 className="card-title">Skills proficiency</h4>
                     <p className="card-desc">Access the detailed report and identify improvement opportunities for your career progress.</p>

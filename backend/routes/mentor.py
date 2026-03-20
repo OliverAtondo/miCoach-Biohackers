@@ -8,7 +8,7 @@ from database import get_db
 import models
 import schemas
 from auth import get_current_user
-from services.ai import analyze_user_profile, generate_roadmap, chat_with_mentor, suggest_careers
+from services.ai import analyze_user_profile, generate_roadmap, chat_with_mentor
 from services.github import fetch_all_repos
 from services.pdf import extract_text_from_pdf
 
@@ -73,13 +73,6 @@ async def onboard(
     db.refresh(current_user)
 
     return {"analysis": analysis, "roadmap": roadmap}
-
-
-@router.post("/suggest-roles")
-async def suggest_roles(answers: dict):
-    """Suggest career roles based on answers."""
-    roles = suggest_careers(answers)
-    return {"roles": roles}
 
 
 @router.post("/chat", response_model=schemas.ChatMessageOut)

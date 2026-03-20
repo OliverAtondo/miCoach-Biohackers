@@ -25,6 +25,7 @@ def _chat_completion(messages: List[Dict], json_mode: bool = False) -> str:
             raise ValueError(f"AI API error {resp.status_code}: {resp.text}")
         return resp.json()["choices"][0]["message"]["content"]
 
+
 def _format_repo_for_prompt(g: Dict) -> str:
     """Build a detailed repo section for the Gemini prompt."""
     lines = [
@@ -194,57 +195,44 @@ def generate_exercise(
     avoid = ", ".join(previous_titles[-10:]) if previous_titles else "none"
 
     messages = [
-                {
-                        "role": "system",
-                        "content": "You are an expert coding interview coach. Generate practical coding exercises. Always respond with valid JSON only, no markdown.",
-                },
-                {
-                        "role": "user",
-                        "content": f"""Generate a {difficulty} coding exercise for:
-Student: {name}
-Career goal: {career_path}
-Their level: {analysis[:600]}
-Language: {language}
-Avoid repeating: {avoid}
-
-STRICT TESTING RULES for test_runner_code:
-1. All tests must be independent, reproducible, and cover normal, edge, and error cases.
-2. Include at least 3 test cases, with clear assertion messages for failures.
-3. Do not depend on global state, files, or user input; tests must be self-contained.
-4. Validate both correct and incorrect/edge inputs.
-5. Use assert statements (Python) or strict equality checks (JS) with descriptive error messages.
-6. Print a clear summary of passed/failed tests.
-7. The user must only implement the solution function; never modify the tests.
-8. The test runner must always call the student's function and check outputs automatically.
-9. All tests must be correct and reflect the problem requirements exactly.
-10. Never skip or comment out failing tests; always show all results.
+        {
+            "role": "system",
+            "content": "You are an expert coding interview coach. Generate practical coding exercises. Always respond with valid JSON only, no markdown.",
+        },
+        {
+            "role": "user",
+            "content": f"""Generate a {difficulty} coding exercise for:
+- Student: {name}
+- Career goal: {career_path}
+- Their level: {analysis[:600]}
+- Language: {language}
+- Avoid repeating: {avoid}
 
 Respond with ONLY this JSON structure (no markdown, no explanation):
 {{
-    "title": "Exercise title",
-    "difficulty": "{difficulty}",
-    "topic": "e.g. Arrays, Strings, OOP, Async, etc.",
-    "description": "Full problem description with context",
-    "examples": [
-        {{"input": "example input", "output": "expected output", "explanation": "why"}}
-    ],
-    "constraints": ["list of constraints like time/space complexity"],
-    "starter_code": "the starter code with function signature and docstring",
-    "test_runner_code": "complete runnable code that defines the function stub, then runs at least 3 test cases using print/assert, so the student can see pass/fail output, following all STRICT TESTING RULES above."
+  "title": "Exercise title",
+  "difficulty": "{difficulty}",
+  "topic": "e.g. Arrays, Strings, OOP, Async, etc.",
+  "description": "Full problem description with context",
+  "examples": [
+    {{"input": "example input", "output": "expected output", "explanation": "why"}}
+  ],
+  "constraints": ["list of constraints like time/space complexity"],
+  "starter_code": "the starter code with function signature and docstring",
+  "test_runner_code": "complete runnable code that defines the function stub, then runs at least 3 test cases using print/assert, so the student can see pass/fail output"
 }}
 
-For test_runner_code: write it so the student's solution function is CALLED and results printed clearly. Follow all STRICT TESTING RULES above.
+For test_runner_code: write it so the student's solution function is CALLED and results printed clearly.
 Example test_runner_code for python:
 def solution(nums):
-        pass  # student replaces this
+    pass  # student replaces this
 
-assert solution([1,2,3]) == 6, "Test 1 failed: sum of [1,2,3] should be 6"
-assert solution([]) == 0, "Test 2 failed: sum of [] should be 0"
-assert solution([-1,1]) == 0, "Test 3 failed: sum of [-1,1] should be 0"
-print("All tests passed!")
+print(solution([1,2,3]))  # expected: 6
+assert solution([1,2,3]) == 6, "Test 1 failed"
+print("Test 1 passed")
 """,
-                },
-        ]
+        },
+    ]
     raw = _chat_completion(messages, json_mode=True)
     raw = raw.strip()
     if raw.startswith("```"):
@@ -469,70 +457,3 @@ Be encouraging but honest. Use markdown formatting.
         },
     ]
     return _chat_completion(messages)
-
-
-def suggest_careers(answers: Dict) -> List[str]:
-    """Suggest career paths based on onboarding answers using Ollama."""
-
-    # Formateamos las respuestas para el prompt
-    answers_text = "\n".join(f"- {k}: {v}" for k, v in answers.items())
-
-    # Lista de opciones permitidas (para validación y para el prompt)
-    allowed_careers = [
-        "Frontend Developer", "Backend Developer", "Full Stack Developer",
-        "DevOps / Cloud Engineer", "Data Scientist", "Machine Learning Engineer",
-        "Mobile Developer (iOS/Android)", "Cybersecurity Engineer",
-        "Blockchain Developer", "QA / Test Engineer"
-    ]
-
-    messages = [
-        {
-            "role": "system",
-            "content": f"""You are a Career Advisor Expert. Your task is to analyze user profile and select the top 5 best career paths.
-
-            STRICT RULES:
-            1. You MUST ONLY pick from this specific list: {allowed_careers}
-            2. You MUST respond with a JSON array of strings.
-            3. DO NOT include explanations, markdown, or any text outside the JSON array.
-
-            EXAMPLE OUTPUT:
-            ["Frontend Developer", "Full Stack Developer", "Mobile Developer (iOS/Android)"]"""
-        },
-        {
-            "role": "user",
-            "content": f"Analyze these user preferences and return the best matches from the allowed list:\n\n{answers_text}"
-        }
-    ]
-
-    # Llamada a tu función de completion
-    # Asegúrate de que json_mode=True pase el formato 'json' a Ollama
-    raw = _chat_completion(messages, json_mode=True)
-
-    try:
-        parsed = json.loads(raw)
-
-        # Si el modelo devuelve un diccionario en lugar de una lista, extraemos los valores
-        if isinstance(parsed, dict):
-            # Intentamos obtener una lista de cualquier llave que parezca contener los roles
-            for key in ["roles", "suggestions", "career_paths"]:
-                if key in parsed and isinstance(parsed[key], list):
-                    parsed = parsed[key]
-                    break
-            else:
-                # Si no hay llaves conocidas, tomamos todos los valores que sean strings
-                parsed = [v for v in parsed.values() if isinstance(v, str)]
-
-        if isinstance(parsed, list):
-            # FILTRO CRÍTICO: Solo permitimos los que están en tu lista oficial
-            # Esto elimina cualquier "alucinación" del modelo
-            matches = [job for job in parsed if job in allowed_careers]
-
-            if matches:
-                return matches[:5] # Retornamos máximo 5
-
-    except Exception as e:
-        print(f"Error parsing Ollama response: {e}")
-
-    # Fallback dinámico: si todo falla, devolvemos los más genéricos de TU lista
-    return ["Full Stack Developer", "Backend Developer", "Frontend Developer"]
-
