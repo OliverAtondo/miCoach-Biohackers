@@ -291,11 +291,16 @@ Keep questions concise and clear (2-4 sentences max).
 
 Respond ONLY with this JSON (no markdown fences):
 {{
-  "is_final": false,
-  "question": "Your question here (just the question, no preamble like 'Question 1:')",
-  "feedback": null,
-  "score": null
-}}"""
+    "is_final": false,
+    "question": "Your question here (just the question, no preamble like 'Question 1:')",
+    "feedback": null,
+    "score": null
+}}
+
+Feedback at the end of the questionaire should be based on the candidate's answers so far, and should be constructive and specific. The score should reflect the candidate's performance up to this point, not just the current question.
+Cannot be null or empty. Always provide feedback and a score, even for the first question. If the information is not sufficient to give detailed feedback, say so but still provide some guidance on what the candidate can do to improve in future questions.
+Always keep the tone professional and encouraging, even if the candidate is struggling.
+"""
 
     messages = [
         {
