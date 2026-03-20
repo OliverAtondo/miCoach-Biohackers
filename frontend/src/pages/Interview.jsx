@@ -3,7 +3,6 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../api/client";
-import { textToSpeech } from "../utils/elevenlabs";
 import "./Interview.css";
 
 const TOTAL = 5;
@@ -82,7 +81,8 @@ export default function Interview() {
     const ctx = audioCtxRef.current;
     if (!ctx) { if (onEnd) onEnd(); return; }
     try {
-      const blob = await textToSpeech(text);
+      const response = await api.post("/api/elevenlabs/tts", { text }, { responseType: "blob" });
+      const blob = response.data;
       const arrayBuffer = await blob.arrayBuffer();
       const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
       const source = ctx.createBufferSource();
@@ -95,7 +95,7 @@ export default function Interview() {
       };
       source.start();
     } catch (err) {
-      console.error("ElevenLabs TTS error:", err);
+      console.error("Backend TTS error:", err);
       if (onEnd) onEnd();
     }
   }, []);
