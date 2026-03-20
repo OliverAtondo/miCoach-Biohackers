@@ -216,23 +216,46 @@ def _merge_code(user_code: str, test_runner: str, language: str) -> str:
     """Replace the stub function in the test runner with the user's actual code."""
     # The test runner contains a stub; we prepend user's code so their definition overrides it
     if language == "python":
-        return user_code + "\n\n" + _strip_stub_python(test_runner)
+        return user_code + "\n\n" + _strip_stub_python(test_runner, user_code)
     else:
         return user_code + "\n\n" + _strip_stub_js(test_runner)
 
 
-def _strip_stub_python(test_runner: str) -> str:
-    """Remove the stub function definition from the test runner (keep only test calls)."""
+def _strip_stub_python(test_runner: str, user_code: str = "") -> str:
+    """Strip only the stub functions (those defined in user_code) from the test runner.
+
+    Helper functions defined only in the test runner (e.g. lists_are_close) are preserved.
+    """
+    import re
+    # Collect function names the user has defined — only strip those from the runner
+    stub_names = set(re.findall(r"^def (\w+)\(", user_code, re.MULTILINE))
+
     lines = test_runner.split("\n")
-    result, skip = [], False
+    result = []
+    in_block = False
+
     for line in lines:
-        if line.startswith("def ") and "pass" in "\n".join(lines[lines.index(line):lines.index(line)+3]):
-            skip = True
-        if skip and (line.strip() == "" or not line.startswith(" ")):
-            skip = False
-            continue
-        if not skip:
-            result.append(line)
+        if in_block:
+            # Exit block when we hit a non-indented, non-empty line
+            if line.strip() and not line[0].isspace():
+                in_block = False
+            else:
+                continue
+
+        if stub_names:
+            # Only strip functions whose name appears in the user's solution
+            m = re.match(r"^def (\w+)\(", line)
+            if m and m.group(1) in stub_names:
+                in_block = True
+                continue
+        else:
+            # Fallback: strip all top-level defs (safe default when no user code)
+            if line.startswith("def ") or line.startswith("class "):
+                in_block = True
+                continue
+
+        result.append(line)
+
     return "\n".join(result)
 
 

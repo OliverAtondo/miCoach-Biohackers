@@ -6,14 +6,16 @@ from typing import List, Dict
 
 load_dotenv()
 
-_MODEL = os.getenv("AI_Model", "qwen2.5:7b")
-_BASE_URL = os.getenv("AI_BASE_URL", "http://localhost:11434/v1")
+_MODEL = os.getenv("AI_MODEL", "qwen2.5:7b")
+_BASE_URL = os.getenv("AI_MODEL_BASE_URL", "http://localhost:11434/v1")
+_API_KEY = os.getenv("AI_MODEL_API_KEY", "ollama")
 
 _TIMEOUT = 380.0
 
 def _chat_completion(messages: List[Dict], json_mode: bool = False) -> str:
-    """Call the configured OpenAI-compatible AI endpoint (Gemini or Kimi)."""
+    """Call the configured OpenAI-compatible AI endpoint (Gemini or Qwen)."""
     headers = {
+        "Authorization": f"Bearer {_API_KEY}",
         "Content-Type": "application/json",
     }
     payload = {"model": _MODEL, "messages": messages}
@@ -27,9 +29,16 @@ def _chat_completion(messages: List[Dict], json_mode: bool = False) -> str:
 
 
 def _format_repo_for_prompt(g: Dict) -> str:
-    """Build a detailed repo section for the Gemini prompt."""
+    """Build a detailed repo section for the AI prompt."""
+
+    print(f"\n\n[DEBUG] GIT DICT: \n{g}")
+
+    name = g.get('name', 'Unknown Repo')
+    if "error" in g:
+        return f"### Repo: {name}\n- Error: {g['error']}"
+
     lines = [
-        f"### Repo: {g['name']}",
+        f"### Repo: {name}",
         f"- Description: {g.get('description', 'N/A')}",
         f"- Primary language: {g.get('language', 'Unknown')}",
     ]
@@ -179,7 +188,6 @@ Answer questions about their learning path, suggest resources, help debug concep
         messages.append({"role": role, "content": msg["content"]})
 
     messages.append({"role": "user", "content": user_message})
-    print(f"\n\n\nCHAT WITH MENTOR:\n{messages}\n\n\n")
     return _chat_completion(messages)
 
 
