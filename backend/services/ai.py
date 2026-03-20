@@ -6,7 +6,7 @@ from typing import List, Dict
 
 load_dotenv()
 
-_MODEL = os.getenv("AI_Model", "llama3:latest")
+_MODEL = os.getenv("AI_Model", "qwen2.5:7b")
 _BASE_URL = os.getenv("AI_BASE_URL", "http://localhost:11434/v1")
 
 _TIMEOUT = 380.0
@@ -473,10 +473,10 @@ Be encouraging but honest. Use markdown formatting.
 
 def suggest_careers(answers: Dict) -> List[str]:
     """Suggest career paths based on onboarding answers using Ollama."""
-    
+
     # Formateamos las respuestas para el prompt
     answers_text = "\n".join(f"- {k}: {v}" for k, v in answers.items())
-    
+
     # Lista de opciones permitidas (para validación y para el prompt)
     allowed_careers = [
         "Frontend Developer", "Backend Developer", "Full Stack Developer",
@@ -489,12 +489,12 @@ def suggest_careers(answers: Dict) -> List[str]:
         {
             "role": "system",
             "content": f"""You are a Career Advisor Expert. Your task is to analyze user profile and select the top 5 best career paths.
-            
+
             STRICT RULES:
             1. You MUST ONLY pick from this specific list: {allowed_careers}
             2. You MUST respond with a JSON array of strings.
             3. DO NOT include explanations, markdown, or any text outside the JSON array.
-            
+
             EXAMPLE OUTPUT:
             ["Frontend Developer", "Full Stack Developer", "Mobile Developer (iOS/Android)"]"""
         },
@@ -510,7 +510,7 @@ def suggest_careers(answers: Dict) -> List[str]:
 
     try:
         parsed = json.loads(raw)
-        
+
         # Si el modelo devuelve un diccionario en lugar de una lista, extraemos los valores
         if isinstance(parsed, dict):
             # Intentamos obtener una lista de cualquier llave que parezca contener los roles
@@ -526,7 +526,7 @@ def suggest_careers(answers: Dict) -> List[str]:
             # FILTRO CRÍTICO: Solo permitimos los que están en tu lista oficial
             # Esto elimina cualquier "alucinación" del modelo
             matches = [job for job in parsed if job in allowed_careers]
-            
+
             if matches:
                 return matches[:5] # Retornamos máximo 5
 

@@ -3,12 +3,30 @@ services:
     build: ./frontend
     ports:
       - "3000:80"
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend_data:/app/data
+    # env_file:
+    #   - ./backend/.env
+    environment:
+      - AI_BASE_URL=http://ollama:11434/v1
+      - AI_Model=qwen2.5:7b
+      - DATABASE_URL=sqlite:///./data/mycoach.db
+      - UPLOAD_DIR=data/uploads
+    depends_on:
+      ollama:
+        condition: service_healthy
+
   ollama:
     image: ollama/ollama
     volumes:
       - ollama_data:/root/.ollama
     entrypoint: ["/bin/sh", "-c"]
-    command: 
+    command:
       - |
         ollama serve &
         until ollama list > /dev/null 2>&1; do
@@ -18,9 +36,10 @@ services:
         wait
     healthcheck:
       test: ["CMD", "ollama", "list"]
-      interval: 150s
-      timeout: 100s
+      interval: 15s
+      timeout: 10s
       retries: 10
-      start_period: 300s
+      start_period: 30s
 volumes:
   ollama_data:
+  backend_data:
