@@ -8,18 +8,24 @@ load_dotenv()
 
 _MODEL = os.getenv("AI_Model", "qwen2.5:7b")
 _BASE_URL = os.getenv("AI_BASE_URL", "http://localhost:11434/v1")
+_API_KEY = os.getenv("API_KEY")
 
 _TIMEOUT = 380.0
 
 def _chat_completion(messages: List[Dict], json_mode: bool = False) -> str:
-    """Call the configured OpenAI-compatible AI endpoint (Gemini or Kimi)."""
-    headers = {
-        "Content-Type": "application/json",
-    }
+    if not _API_KEY:
+        headers = {
+            "Content-Type": "application/json",
+        }
+    else:
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {_API_KEY}"
+        }
     payload = {"model": _MODEL, "messages": messages}
     if json_mode:
         payload["response_format"] = {"type": "json_object"}
-    with httpx.Client(timeout=_TIMEOUT) as client:
+    with httpx.Client(timeout=_TIMEOUT, verify=False) as client:
         resp = client.post(f"{_BASE_URL}/chat/completions", headers=headers, json=payload)
         if not resp.is_success:
             raise ValueError(f"AI API error {resp.status_code}: {resp.text}")
