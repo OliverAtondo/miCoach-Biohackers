@@ -37,10 +37,12 @@ export default function Dashboard() {
   const [submitting, setSubmitting] = useState({});
   const [evalResults, setEvalResults] = useState({});
   
+
   // Hot Topics state
   const [hotTopics, setHotTopics] = useState([]);
   const [topicsLoading, setTopicsLoading] = useState(true);
   const [topicsError, setTopicsError] = useState("");
+  const [showAllTopics, setShowAllTopics] = useState(false);
 
   useEffect(() => {
     if (!user?.onboarding_complete) {
@@ -55,11 +57,16 @@ export default function Dashboard() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
   
+
   const loadHotTopics = async () => {
     setTopicsLoading(true);
+    setTopicsError("");
     try {
-      const res = await api.get("/api/hot-topics/relevant");
-      setHotTopics(res.data.results || []);
+      // Enviar el rol del usuario para filtrar noticias relevantes
+      const res = await api.get("/api/hot-topics/relevant", {
+        params: { role: user?.career_path || "" }
+      });
+      setHotTopics(res.data.results || res.data || []);
     } catch (err) {
       setTopicsError("Could not load topics.");
     } finally {
@@ -283,21 +290,38 @@ What would you like to explore first?`,
                     <div className="banner-deco" />
                   </div>
 
-                  <div className="card">
+                  <div className="card hot-topics-card">
                     <h4 className="card-title">Temas del Momento</h4>
                     {topicsLoading ? (
                       <div className="loading-spinner"></div>
                     ) : topicsError ? (
                       <div className="topics-error">{topicsError}</div>
                     ) : (
-                      <div className="topics-list">
-                        {hotTopics.slice(0, 5).map((topic, i) => (
-                          <a href={topic.url} target="_blank" rel="noopener noreferrer" key={i} className="topic-item">
-                            <div className="topic-title">{topic.title}</div>
-                            <div className="topic-source">{topic.source}</div>
-                          </a>
-                        ))}
-                      </div>
+                      <>
+                        <div className="hot-topics-list">
+                          {(showAllTopics ? hotTopics : hotTopics.slice(0, 7)).map((topic, i) => (
+                            <a href={topic.url} target="_blank" rel="noopener noreferrer" key={i} className="hot-topic-item">
+                              <div className="hot-topic-header">
+                                <span className="hot-topic-title">{topic.title}</span>
+                                <span className="hot-topic-source">{topic.source}</span>
+                              </div>
+                              {topic.summary && (
+                                <div className="hot-topic-summary">{topic.summary}</div>
+                              )}
+                            </a>
+                          ))}
+                        </div>
+                        <div className="hot-topics-actions">
+                          {hotTopics.length > 7 && (
+                            <button className="btn btn-outline btn-sm" onClick={() => setShowAllTopics((v) => !v)}>
+                              {showAllTopics ? "Ver menos" : "Ver más"}
+                            </button>
+                          )}
+                          <button className="btn btn-primary btn-sm" style={{marginLeft:8}} onClick={loadHotTopics} disabled={topicsLoading}>
+                            Refrescar
+                          </button>
+                        </div>
+                      </>
                     )}
                   </div>
 

@@ -1,162 +1,381 @@
 #!/usr/bin/env python3
 """
-Hot Topics Scraper for Programming News
-Scrapes latest news from reliable sources: Hacker News, Reddit r/programming, Dev.to, GitHub Trending
+Enhanced Programming Hot Topics Scraper
+Includes Tier 1 & Tier 2 developer news sources.
 """
 
 import requests
 from bs4 import BeautifulSoup
-import json
-import time
 from typing import List, Dict
 import sys
 
-# User agent to avoid being blocked
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
 }
 
-def scrape_hacker_news() -> List[Dict]:
-    """Scrape top stories from Hacker News"""
+# ------------------------------
+# EXISTING SCRAPERS (you already had)
+# ------------------------------
+# ... keep your existing Hacker News / Reddit / Dev.to / GitHub removed
+
+
+# ==============================
+# NEW SCRAPERS (Tier 1 + Tier 2)
+# ==============================
+
+# ---------------------------------------------------------
+# 1. INFOQ
+# ---------------------------------------------------------
+def scrape_infoq() -> List[Dict]:
     try:
-        url = 'https://news.ycombinator.com/'
-        response = requests.get(url, headers=HEADERS, timeout=10)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
+        url = "https://www.infoq.com/development/"
+        r = requests.get(url, headers=HEADERS, timeout=10)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
 
         stories = []
-        # HN uses <tr class="athing"> for stories
-        for item in soup.find_all('tr', class_='athing')[:10]:  # Top 10
-            title_tag = item.find('a', class_='titlelink')
-            if title_tag:
-                title = title_tag.get_text(strip=True)
-                url = title_tag.get('href')
-                # Include if it's an external link or programming related
-                if url and not url.startswith('item?id='):
-                    stories.append({
-                        'title': title,
-                        'url': url if url.startswith('http') else f'https://news.ycombinator.com/{url}',
-                        'source': 'Hacker News'
-                    })
-        return stories
-    except Exception as e:
-        print(f"Error scraping Hacker News: {e}", file=sys.stderr)
-        return []
+        for article in soup.select("article")[:10]:
+            title_tag = article.find("h2")
+            if not title_tag:
+                continue
 
-def scrape_reddit_programming() -> List[Dict]:
-    """Scrape hot posts from r/programming"""
-    try:
-        url = 'https://www.reddit.com/r/programming/hot.json?limit=10'
-        response = requests.get(url, headers=HEADERS, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-
-        stories = []
-        for post in data['data']['children']:
-            post_data = post['data']
-            title = post_data['title']
-            url = post_data['url']
-            # Skip stickied posts or non-programming content
-            if not post_data.get('stickied', False) and 'programming' in title.lower() or any(word in title.lower() for word in ['python', 'javascript', 'java', 'c++', 'rust', 'go', 'framework', 'language']):
+            title = title_tag.get_text(strip=True)
+            link_tag = article.find("a", href=True)
+            if link_tag:
+                link = "https://www.infoq.com" + link_tag["href"]
                 stories.append({
-                    'title': title,
-                    'url': url,
-                    'source': 'Reddit r/programming'
+                    "title": title,
+                    "url": link,
+                    "source": "InfoQ"
                 })
-        return stories[:10]  # Limit to 10
-    except Exception as e:
-        print(f"Error scraping Reddit: {e}", file=sys.stderr)
-        return []
-
-def scrape_dev_to() -> List[Dict]:
-    """Scrape recent articles from Dev.to"""
-    try:
-        url = 'https://dev.to/'
-        response = requests.get(url, headers=HEADERS, timeout=10)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
-
-        stories = []
-        # Dev.to uses <article> or specific classes
-        for article in soup.find_all('article')[:10]:
-            title_tag = article.find('h2') or article.find('a', class_='crayons-link')
-            if title_tag:
-                title = title_tag.get_text(strip=True)
-                url_tag = article.find('a', href=True)
-                if url_tag:
-                    url = 'https://dev.to' + url_tag['href'] if url_tag['href'].startswith('/') else url_tag['href']
-                    stories.append({
-                        'title': title,
-                        'url': url,
-                        'source': 'Dev.to'
-                    })
         return stories
     except Exception as e:
-        print(f"Error scraping Dev.to: {e}", file=sys.stderr)
+        print(f"[!] InfoQ Error: {e}", file=sys.stderr)
         return []
 
-def scrape_github_trending() -> List[Dict]:
-    """Scrape trending repositories from GitHub"""
+
+# ---------------------------------------------------------
+# 2. SD Times
+# ---------------------------------------------------------
+def scrape_sd_times() -> List[Dict]:
     try:
-        url = 'https://github.com/trending'
-        response = requests.get(url, headers=HEADERS, timeout=10)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
+        url = "https://sdtimes.com/category/developer/"
+        r = requests.get(url, headers=HEADERS, timeout=10)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
 
         stories = []
-        for repo in soup.find_all('article', class_='Box-row')[:10]:
-            title_tag = repo.find('h2', class_='h3')
-            if title_tag:
-                title = title_tag.get_text(strip=True).replace('\n', '').replace(' ', '')
-                url_tag = title_tag.find('a')
-                if url_tag:
-                    url = 'https://github.com' + url_tag['href']
-                    desc_tag = repo.find('p', class_='col-9')
-                    description = desc_tag.get_text(strip=True) if desc_tag else 'No description'
-                    full_title = f"{title} - {description}"
-                    stories.append({
-                        'title': full_title,
-                        'url': url,
-                        'source': 'GitHub Trending'
-                    })
+        for article in soup.select("article")[:10]:
+            title_tag = article.find("h2")
+            if not title_tag:
+                continue
+
+            title = title_tag.get_text(strip=True)
+            link_tag = article.find("a", href=True)
+            if link_tag:
+                stories.append({
+                    "title": title,
+                    "url": link_tag["href"],
+                    "source": "SD Times"
+                })
         return stories
     except Exception as e:
-        print(f"Error scraping GitHub: {e}", file=sys.stderr)
+        print(f"[!] SD Times Error: {e}", file=sys.stderr)
         return []
 
-def get_hot_topics() -> List[Dict]:
-    """Main function to get all hot topics from all sources"""
-    all_news = []
 
-    # Scrape all sources
+# ---------------------------------------------------------
+# 3. DeveloperTech News
+# ---------------------------------------------------------
+def scrape_developertech() -> List[Dict]:
+    try:
+        url = "https://www.developer-tech.com/"
+        r = requests.get(url, headers=HEADERS, timeout=10)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
+
+        stories = []
+        for art in soup.select("article")[:10]:
+            title_tag = art.find("h3") or art.find("h2")
+            if not title_tag:
+                continue
+
+            title = title_tag.get_text(strip=True)
+            link_tag = art.find("a", href=True)
+            if link_tag:
+                stories.append({
+                    "title": title,
+                    "url": link_tag["href"],
+                    "source": "DeveloperTech News"
+                })
+        return stories
+    except Exception as e:
+        print(f"[!] DeveloperTech Error: {e}", file=sys.stderr)
+        return []
+
+
+# ---------------------------------------------------------
+# 4. TechCrunch (Developer / Startup news)
+# ---------------------------------------------------------
+def scrape_techcrunch() -> List[Dict]:
+    try:
+        url = "https://techcrunch.com/tag/programming/"
+        r = requests.get(url, headers=HEADERS, timeout=10)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
+
+        stories = []
+        for post in soup.select("div.post-block")[:10]:
+            title_tag = post.find("h2")
+            if not title_tag:
+                continue
+
+            title = title_tag.get_text(strip=True)
+            link_tag = title_tag.find("a", href=True)
+            if link_tag:
+                stories.append({
+                    "title": title,
+                    "url": link_tag["href"],
+                    "source": "TechCrunch"
+                })
+        return stories
+    except Exception as e:
+        print(f"[!] TechCrunch Error: {e}", file=sys.stderr)
+        return []
+
+
+# ---------------------------------------------------------
+# 5. Martin Fowler Blog
+# ---------------------------------------------------------
+def scrape_martin_fowler() -> List[Dict]:
+    try:
+        url = "https://martinfowler.com/"
+        r = requests.get(url, headers=HEADERS, timeout=10)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
+
+        stories = []
+        for li in soup.select("ul#latest-articles li")[:10]:
+            a = li.find("a", href=True)
+            if a:
+                title = a.get_text(strip=True)
+                link = "https://martinfowler.com" + a["href"]
+                stories.append({
+                    "title": title,
+                    "url": link,
+                    "source": "Martin Fowler Blog"
+                })
+        return stories
+    except Exception as e:
+        print(f"[!] Martin Fowler Error: {e}", file=sys.stderr)
+        return []
+
+
+# ---------------------------------------------------------
+# 6. Stack Overflow Blog
+# ---------------------------------------------------------
+def scrape_stackoverflow_blog() -> List[Dict]:
+    try:
+        url = "https://stackoverflow.blog/"
+        r = requests.get(url, headers=HEADERS, timeout=10)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
+
+        stories = []
+        for article in soup.select("article")[:10]:
+            title_tag = article.find("h2")
+            if not title_tag:
+                continue
+            title = title_tag.get_text(strip=True)
+            link_tag = article.find("a", href=True)
+            if link_tag:
+                stories.append({
+                    "title": title,
+                    "url": link_tag["href"],
+                    "source": "Stack Overflow Blog"
+                })
+        return stories
+
+    except Exception as e:
+        print(f"[!] SO Blog Error: {e}", file=sys.stderr)
+        return []
+
+
+# ---------------------------------------------------------
+# 7. DigitalOcean Community
+# ---------------------------------------------------------
+def scrape_digitalocean() -> List[Dict]:
+    try:
+        url = "https://www.digitalocean.com/community/tutorials"
+        r = requests.get(url, headers=HEADERS, timeout=10)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
+
+        stories = []
+        for card in soup.select("div.card--content")[:10]:
+            a = card.find("a", href=True)
+            if a:
+                title = a.get_text(strip=True)
+                link = "https://www.digitalocean.com" + a["href"]
+                stories.append({
+                    "title": title,
+                    "url": link,
+                    "source": "DigitalOcean Community"
+                })
+        return stories
+    except Exception as e:
+        print(f"[!] DigitalOcean Error: {e}", file=sys.stderr)
+        return []
+
+
+# ---------------------------------------------------------
+# 8. CSS-Tricks
+# ---------------------------------------------------------
+def scrape_css_tricks() -> List[Dict]:
+    try:
+        url = "https://css-tricks.com/"
+        r = requests.get(url, headers=HEADERS, timeout=10)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
+
+        stories = []
+        for article in soup.select("article.article-card")[:10]:
+            title_tag = article.find("h2")
+            if not title_tag:
+                continue
+            title = title_tag.get_text(strip=True)
+            link_tag = article.find("a", href=True)
+            if link_tag:
+                stories.append({
+                    "title": title,
+                    "url": link_tag["href"],
+                    "source": "CSS-Tricks"
+                })
+        return stories
+    except Exception as e:
+        print(f"[!] CSS-Tricks Error: {e}", file=sys.stderr)
+        return []
+
+
+# ---------------------------------------------------------
+# 9. GitLab Trending Repos
+# ---------------------------------------------------------
+def scrape_gitlab_trending() -> List[Dict]:
+    try:
+        url = "https://gitlab.com/explore/projects/trending"
+        r = requests.get(url, headers=HEADERS, timeout=10)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
+
+        stories = []
+        for proj in soup.select("li.project-row")[:10]:
+            a = proj.find("a", class_="project-row-title", href=True)
+            if a:
+                title = a.get_text(strip=True)
+                link = "https://gitlab.com" + a["href"]
+                stories.append({
+                    "title": title,
+                    "url": link,
+                    "source": "GitLab Trending"
+                })
+        return stories
+    except Exception as e:
+        print(f"[!] GitLab Error: {e}", file=sys.stderr)
+        return []
+
+
+# ==============================
+# COMBINED SCRAPE
+# ==============================
+
+def get_hot_topics(user_role: str = None) -> List[Dict]:
+    """
+    Get hot topics, optionally filtering or ranking by user_role (e.g., 'Frontend Developer').
+    Each topic includes: title, url, source, summary (if available).
+    """
     sources = [
-        ('Hacker News', scrape_hacker_news),
-        ('Reddit r/programming', scrape_reddit_programming),
-        ('Dev.to', scrape_dev_to),
-        ('GitHub Trending', scrape_github_trending),
+        ("InfoQ", scrape_infoq),
+        ("SD Times", scrape_sd_times),
+        ("DeveloperTech", scrape_developertech),
+        ("TechCrunch", scrape_techcrunch),
+        ("Martin Fowler", scrape_martin_fowler),
+        ("Stack Overflow Blog", scrape_stackoverflow_blog),
+        ("DigitalOcean", scrape_digitalocean),
+        ("CSS-Tricks", scrape_css_tricks),
+        ("GitLab Trending", scrape_gitlab_trending)
     ]
 
-    for source_name, scraper_func in sources:
-        news = scraper_func()
-        all_news.extend(news)
+    all_news = []
+    for name, func in sources:
+        print(f"Fetching {name} ...")
+        try:
+            for item in func():
+                # Try to extract a summary/snippet if possible
+                summary = None
+                if 'url' in item:
+                    try:
+                        r = requests.get(item['url'], headers=HEADERS, timeout=6)
+                        soup = BeautifulSoup(r.text, "html.parser")
+                        # Try to get first paragraph or meta description
+                        p = soup.find('p')
+                        if p and len(p.get_text(strip=True)) > 40:
+                            summary = p.get_text(strip=True)[:220]
+                        else:
+                            desc = soup.find('meta', attrs={'name': 'description'})
+                            if desc and desc.get('content'):
+                                summary = desc['content'][:220]
+                    except Exception:
+                        pass
+                all_news.append({
+                    "title": item.get("title", ""),
+                    "url": item.get("url", ""),
+                    "source": item.get("source", ""),
+                    "summary": summary or ""
+                })
+        except Exception as e:
+            print(f"[ERROR] {name}: {e}")
+
+    # Si se provee user_role, filtrar/ordenar por relevancia usando keywords
+    if user_role:
+        role_keywords = {
+            "frontend": ["css", "react", "vue", "angular", "javascript", "ui", "web", "html", "frontend"],
+            "backend": ["api", "database", "server", "python", "node", "backend", "cloud", "docker", "sql"],
+            "data": ["data", "ml", "ai", "machine learning", "analytics", "pandas", "numpy", "deep learning"],
+            "devops": ["devops", "cloud", "ci", "cd", "docker", "kubernetes", "infrastructure", "aws", "azure"],
+            "mobile": ["mobile", "android", "ios", "react native", "flutter", "swift", "kotlin"],
+            "security": ["security", "cyber", "vulnerability", "encryption", "auth", "pentest", "hacking"],
+        }
+        role = user_role.lower()
+        keywords = []
+        for k, v in role_keywords.items():
+            if k in role:
+                keywords = v
+                break
+        if keywords:
+            def score(item):
+                text = (item["title"] + " " + item["summary"]).lower()
+                return sum(kw in text for kw in keywords)
+            all_news.sort(key=score, reverse=True)
 
     return all_news
 
+
+# ==============================
+# MAIN
+# ==============================
 def main():
     print("🔍 Scraping latest programming news...\n")
 
-    all_news = get_hot_topics()
+    news = get_hot_topics()
 
-    print("📰 Latest Programming News:\n")
+    print("\n📰 Latest Programming News:")
     print("=" * 80)
-
-    for i, item in enumerate(all_news[:50], 1):  # Limit to 50 total
+    for i, item in enumerate(news[:80], 1):
         print(f"{i:2d}. [{item['source']}] {item['title']}")
-        print(f"    {item['url']}")
-        print()
-
+        print(f"    {item['url']}\n")
     print("=" * 80)
-    print(f"Total news items: {len(all_news)}")
+    print(f"Total items is: {len(news)}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

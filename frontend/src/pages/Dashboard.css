@@ -888,76 +888,90 @@
 /* ── Hot Topics ───────────────────────────────────────────── */
 .hot-topics-card {
   margin-top: 1.5rem;
+  border: 1px solid #dbeafe;
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.08);
+  padding: 1rem;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #ffffff 0%, #f8fbff 100%);
 }
 
 .hot-topics-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0.85rem;
 }
 
 .hot-topic-item {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
   justify-content: space-between;
-  padding: 1rem;
-  background: #f8fafc;
-  border-radius: 8px;
+  min-height: 152px;
+  padding: 0.95rem 0.85rem;
+  background: white;
+  border-radius: 12px;
   border: 1px solid #e2e8f0;
-  transition: all 0.2s ease;
+  transition: all 0.22s ease;
+  text-decoration: none;
+  color: inherit;
 }
 
 .hot-topic-item:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(37, 99, 235, 0.16);
+  border-color: #dbeafe;
 }
 
-.hot-topic-content {
-  flex: 1;
-  min-width: 0;
+.hot-topic-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 .hot-topic-title {
   font-size: 0.95rem;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 0.5rem 0;
-  line-height: 1.4;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.35;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.hot-topic-summary {
+  font-size: 0.82rem;
+  color: #475569;
+  line-height: 1.5;
+  margin-top: 0.35rem;
+  max-height: 3.6em;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .hot-topic-meta {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
   font-size: 0.8rem;
   color: #64748b;
 }
 
 .hot-topic-source {
-  background: #e2e8f0;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-weight: 500;
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-weight: 600;
 }
 
-.hot-topic-relevance {
-  color: #059669;
-  font-weight: 500;
-}
-
-.hot-topic-link {
-  color: #64748b;
-  transition: color 0.2s ease;
-  flex-shrink: 0;
-  margin-left: 1rem;
-}
-
-.hot-topic-link:hover {
+.hot-topic-action {
+  font-size: 0.78rem;
   color: #2563eb;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 .loading-spinner {
