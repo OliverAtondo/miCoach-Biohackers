@@ -21,7 +21,7 @@ def _chat_completion(messages: List[Dict], json_mode: bool = False) -> str:
     payload = {"model": _MODEL, "messages": messages}
     if json_mode:
         payload["response_format"] = {"type": "json_object"}
-    with httpx.Client(timeout=_TIMEOUT) as client:
+    with httpx.Client(timeout=_TIMEOUT, verify=False) as client:
         resp = client.post(f"{_BASE_URL}/chat/completions", headers=headers, json=payload)
         if not resp.is_success:
             raise ValueError(f"AI API error {resp.status_code}: {resp.text}")
